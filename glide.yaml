@@ -1,0 +1,5 @@
+package: github.com/dradtke/packer-linode
+import:
+- package: github.com/mitchellh/packer
+  subpackages:
+  - packer/plugin

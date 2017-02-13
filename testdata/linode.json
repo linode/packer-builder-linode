@@ -1,0 +1,21 @@
+{
+  "variables": {
+    "linode_api_key": "{{env `LINODE_API_KEY`}}"
+  },
+  "builders": [
+    {
+      "name": "vps-linode",
+      "type": "linode",
+
+      "api_key": "{{user `linode_api_key`}}",
+      "distribution_name": "openSUSE Leap 42.2",
+      "datacenter_name": "atlanta",
+      "label": "Fancy",
+      "description": "Oh so fancy",
+      "root_pass": "l3tM31n",
+      "plan_id": 1,
+
+      "disk_size": 2048
+    }
+  ]
+}

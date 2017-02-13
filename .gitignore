@@ -1,3 +1,5 @@
+.*.swp
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
@@ -22,3 +24,6 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+/packer-builder-linode
+/vendor

@@ -1,0 +1,31 @@
+hash: a278c3f1fa247f68f28f6c5a4cf184c9a322556874e9abb53b6a569e4eab5418
+updated: 2017-02-13T12:39:00.886634308-06:00
+imports:
+- name: github.com/hashicorp/errwrap
+  version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
+- name: github.com/hashicorp/go-multierror
+  version: ed905158d87462226a13fe39ddf685ea65f1c11f
+- name: github.com/hashicorp/go-version
+  version: 03c5bf6be031b6dd45afec16b1cf94fc8938bc77
+- name: github.com/mitchellh/go-fs
+  version: 7bae45d9a684750e82b97ff320c82556614e621b
+  subpackages:
+  - fat
+- name: github.com/mitchellh/iochan
+  version: 87b45ffd0e9581375c491fef3d32130bb15c5bd7
+- name: github.com/mitchellh/mapstructure
+  version: db1efb556f84b25a0a13a04aad883943538ad2e0
+- name: github.com/mitchellh/multistep
+  version: 162146fc57112954184d90266f4733e900ed05a5
+- name: github.com/mitchellh/packer
+  version: 99ffcfc26963adbc339f6f0ea4c0d12761e3ba55
+  subpackages:
+  - common
+  - common/uuid
+  - packer
+  - packer/plugin
+  - template
+  - template/interpolate
+- name: github.com/mitchellh/reflectwalk
+  version: 417edcfd99a4d472c262e58f22b4bfe97580f03e
+testImports: []
