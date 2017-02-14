@@ -7,7 +7,6 @@ import (
 
 type Artifact struct {
 	LinodeID int
-	DiskID   int
 	ImageID  int
 	apiKey   string
 }

@@ -34,7 +34,7 @@ func (r LinodeResponse) Errors() []error {
 	return errs
 }
 
-func LinodeCreate(ctx context.Context, apiKey string, datacenterId, planId, paymentTerm int) (int, error) {
+func LinodeCreate(ctx context.Context, apiKey string, datacenterId, planId, paymentTerm int) (linodeId int, err error) {
 	params := map[string]string{
 		"DatacenterID": strconv.Itoa(datacenterId),
 		"PlanID":       strconv.Itoa(planId),
@@ -55,7 +55,7 @@ func LinodeCreate(ctx context.Context, apiKey string, datacenterId, planId, paym
 	return parsedData.LinodeID, nil
 }
 
-func LinodeDiskCreateFromDistribution(ctx context.Context, apiKey string, linodeId, distroId int, label string, size int, rootPass, rootSSHKey string) (int, error) {
+func LinodeDiskCreateFromDistribution(ctx context.Context, apiKey string, linodeId, distroId int, label string, size int, rootPass, rootSSHKey string) (diskId int, jobId int, err error) {
 	params := map[string]string{
 		"LinodeID":       strconv.Itoa(linodeId),
 		"DistributionID": strconv.Itoa(distroId),
@@ -68,19 +68,19 @@ func LinodeDiskCreateFromDistribution(ctx context.Context, apiKey string, linode
 	}
 	data, err := makeLinodeRequest(ctx, apiKey, "linode.disk.createfromdistribution", params)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	var parsedData struct {
-		JobID  int `json:"JobID"`
 		DiskID int `json:"DiskID"`
+		JobID  int `json:"JobID"`
 	}
 	if err := json.Unmarshal(data, &parsedData); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return parsedData.DiskID, nil
+	return parsedData.DiskID, parsedData.JobID, nil
 }
 
-func LinodeDiskImagize(ctx context.Context, apiKey string, linodeId, diskId int, description, label string) (int, error) {
+func LinodeDiskImagize(ctx context.Context, apiKey string, linodeId, diskId int, description, label string) (imageId int, jobId int, err error) {
 	params := map[string]string{
 		"LinodeID": strconv.Itoa(linodeId),
 		"DiskID":   strconv.Itoa(diskId),
@@ -93,16 +93,16 @@ func LinodeDiskImagize(ctx context.Context, apiKey string, linodeId, diskId int,
 	}
 	data, err := makeLinodeRequest(ctx, apiKey, "linode.disk.imagize", params)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	var parsedData struct {
 		JobID   int `json:"JobID"`
 		ImageID int `json:"ImageID"`
 	}
 	if err := json.Unmarshal(data, &parsedData); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return parsedData.ImageID, nil
+	return parsedData.ImageID, parsedData.JobID, nil
 }
 
 func LinodeDelete(ctx context.Context, apiKey string, linodeId int, skipChecks bool) error {
@@ -112,6 +112,24 @@ func LinodeDelete(ctx context.Context, apiKey string, linodeId int, skipChecks b
 	}
 	_, err := makeLinodeRequest(ctx, apiKey, "linode.delete", params)
 	return err
+}
+
+func LinodeDiskDelete(ctx context.Context, apiKey string, linodeId, diskId int) (int, error) {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+		"DiskID":   strconv.Itoa(diskId),
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.disk.delete", params)
+	if err != nil {
+		return 0, err
+	}
+	var parsedData struct {
+		JobID int `json:"JobID"`
+	}
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return 0, err
+	}
+	return parsedData.JobID, nil
 }
 
 type Distribution struct {
@@ -221,6 +239,83 @@ func ImageDelete(ctx context.Context, apiKey string, imageId int) error {
 	}
 	_, err := makeLinodeRequest(ctx, apiKey, "image.delete", params)
 	return err
+}
+
+type LinodeInt int
+
+func (i *LinodeInt) UnmarshalJSON(text []byte) error {
+	str := string(text)
+	if str == `""` {
+		*i = 0
+	} else {
+		if x, err := strconv.Atoi(str); err != nil {
+			return err
+		} else {
+			*i = LinodeInt(x)
+		}
+	}
+	return nil
+}
+
+type Job struct {
+	ID             int       `json:"JOBID"`
+	LinodeID       int       `json:"LINODEID"`
+	EnteredDate    string    `json:"ENTERED_DT"`
+	HostStartDate  string    `json:"HOST_START_DT"`
+	HostFinishDate string    `json:"HOST_FINISH_DT"`
+	Action         string    `json:"ACTION"`
+	Label          string    `json:"LABEL"`
+	Duration       LinodeInt `json:"DURATION"`
+	HostMessage    string    `json:"HOST_MESSAGE"`
+	HostSuccess    LinodeInt `json:"HOST_SUCCESS"`
+}
+
+func LinodeJobList(ctx context.Context, apiKey string, linodeId, jobId int, pendingOnly bool) ([]Job, error) {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+	}
+	if jobId != 0 {
+		params["JobID"] = strconv.Itoa(jobId)
+	}
+	if pendingOnly {
+		params["pendingOnly"] = "1"
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.job.list", params)
+	if err != nil {
+		return nil, err
+	}
+	var parsedData []Job
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return nil, err
+	}
+	return parsedData, nil
+}
+
+type LinodeIP struct {
+	ID       int    `json:"IPADDRESSID"`
+	LinodeID int    `json:"LINODEID"`
+	IsPublic int16  `json:"ISPUBLIC"`
+	Address  string `json:"IPADDRESS"`
+	RDNSName string `json:"RDNS_NAME"`
+}
+
+func LinodeIPList(ctx context.Context, apiKey string, linodeId, ipAddressId int) ([]LinodeIP, error) {
+	params := make(map[string]string)
+	if linodeId != 0 {
+		params["LinodeID"] = strconv.Itoa(linodeId)
+	}
+	if ipAddressId != 0 {
+		params["IPAddressID"] = strconv.Itoa(ipAddressId)
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.ip.list", params)
+	if err != nil {
+		return nil, err
+	}
+	var parsedData []LinodeIP
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return nil, err
+	}
+	return parsedData, nil
 }
 
 // makeLinodeRequest executes a request against Linode's API and returns a

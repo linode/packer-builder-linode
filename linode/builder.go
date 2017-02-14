@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/packer/helper/config"
@@ -167,35 +169,100 @@ func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
 
 func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret packer.Artifact, err error) {
 	defer close(b.done)
+	var (
+		linodeId int
+		diskId   int
+		imageId  int
+		jobId    int
+		ips      []LinodeIP
+	)
 
 	ui.Say("Creating new Linode")
-	artifact := Artifact{apiKey: b.config.APIKey}
 	defer func() {
-		if err != nil && artifact.LinodeID != 0 {
+		if err != nil && linodeId != 0 {
 			ui.Say("An error was encountered, deleting the Linode")
-			if err2 := LinodeDelete(b.ctx, artifact.apiKey, artifact.LinodeID, false); err2 != nil {
+			if diskId != 0 {
+				var err2 error
+				if jobId, err2 = LinodeDiskDelete(b.ctx, b.config.APIKey, linodeId, diskId); err2 != nil {
+					err = multierror.Append(err, err2)
+				}
+				if err2 = b.waitForJob(ui, linodeId, jobId); err != nil {
+					err = multierror.Append(err, err2)
+				}
+			}
+			if err2 := LinodeDelete(b.ctx, b.config.APIKey, linodeId, false); err2 != nil {
 				err = multierror.Append(err, err2)
 			}
 		}
 	}()
-	if artifact.LinodeID, err = LinodeCreate(b.ctx, b.config.APIKey, b.config.DatacenterID, b.config.PlanID, b.config.PaymentTerm); err != nil {
+	if linodeId, err = LinodeCreate(b.ctx, b.config.APIKey, b.config.DatacenterID, b.config.PlanID, b.config.PaymentTerm); err != nil {
 		return nil, err
 	}
+	ui.Message(fmt.Sprintf("Linode ID: %d", linodeId))
 
 	ui.Say("Creating disk")
-	if artifact.DiskID, err = LinodeDiskCreateFromDistribution(b.ctx, b.config.APIKey, artifact.LinodeID, b.config.DistributionID, b.config.Label, b.config.DiskSize, b.config.RootPass, b.config.RootSSHKey); err != nil {
+	if diskId, jobId, err = LinodeDiskCreateFromDistribution(b.ctx, b.config.APIKey, linodeId, b.config.DistributionID, b.config.Label, b.config.DiskSize, b.config.RootPass, b.config.RootSSHKey); err != nil {
 		return nil, err
 	}
+	if err = b.waitForJob(ui, linodeId, jobId); err != nil {
+		return nil, err
+	}
+	ui.Message(fmt.Sprintf("Disk ID: %d", diskId))
+
+	if ips, err = LinodeIPList(b.ctx, b.config.APIKey, linodeId, 0); err != nil {
+		return nil, err
+	}
+	ui.Message(fmt.Sprintf("Linode IP Address: %s", ips[0].Address))
 
 	// TODO: run provisioners
 
 	ui.Say("Imagizing the disk")
-	if artifact.ImageID, err = LinodeDiskImagize(b.ctx, b.config.APIKey, artifact.LinodeID, artifact.DiskID, b.config.Description, b.config.Label); err != nil {
+	if imageId, jobId, err = LinodeDiskImagize(b.ctx, b.config.APIKey, linodeId, diskId, b.config.Description, b.config.Label); err != nil {
+		return nil, err
+	}
+	if err = b.waitForJob(ui, linodeId, jobId); err != nil {
 		return nil, err
 	}
 
+	cleanup := func() error {
+		ui.Say("Cleaning up")
+		if jobId, err = LinodeDiskDelete(b.ctx, b.config.APIKey, linodeId, diskId); err != nil {
+			return errors.New("failed to start disk deletion: " + err.Error())
+		}
+		if err = b.waitForJob(ui, linodeId, jobId); err != nil {
+			return errors.New("disk deletion failed: " + err.Error())
+		}
+		if err = LinodeDelete(b.ctx, b.config.APIKey, linodeId, false); err != nil {
+			return errors.New("failed to delete Linode: " + err.Error())
+		}
+		return nil
+	}
+
+	if err = cleanup(); err != nil {
+		ui.Say("Image was built successfully, but an error was encountered during cleanup: " + err.Error())
+		ui.Say("You should delete Linode " + strconv.Itoa(linodeId) + " manually.")
+	}
+
 	// ui.Say("Done, cleaning up")
-	return artifact, nil
+	return Artifact{apiKey: b.config.APIKey, ImageID: imageId}, nil
+}
+
+func (b *Builder) waitForJob(ui packer.Ui, linodeId, jobId int) error {
+	ui.Message("--> Waiting for job " + strconv.Itoa(jobId) + " to complete")
+	for {
+		jobs, err := LinodeJobList(b.ctx, b.config.APIKey, linodeId, jobId, false)
+		if err != nil {
+			return err
+		}
+		if jobs[0].HostFinishDate != "" {
+			if int(jobs[0].HostSuccess) == 0 {
+				return errors.New(jobs[0].HostMessage)
+			}
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return nil
 }
 
 func (b *Builder) Cancel() {
