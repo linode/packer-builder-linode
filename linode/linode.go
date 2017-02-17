@@ -429,9 +429,6 @@ func LinodeConfigDelete(ctx context.Context, apiKey string, linodeId, configId i
 	return err
 }
 
-// makeLinodeRequest executes a request against Linode's API and returns a
-// map corresponding to the response's DATA field. Any HTTP or API errors
-// are returned as a slice of errors.
 func makeLinodeRequest(ctx context.Context, apiKey, name string, parameters map[string]string) (json.RawMessage, error) {
 	params := url.Values{}
 	params.Add("api_key", apiKey)
