@@ -4,18 +4,25 @@
   },
   "builders": [
     {
-      "name": "vps-linode",
       "type": "linode",
 
       "api_key": "{{user `linode_api_key`}}",
-      "distribution_name": "openSUSE Leap 42.2",
       "datacenter_name": "atlanta",
-      "label": "Fancy",
       "description": "Oh so fancy",
-      "root_pass": "l3tM31n",
+      "distribution_name": "openSUSE Leap 42.2",
+      "disk_size": 2048,
+      "kernel_name": "Latest 64 bit (4.8.6-x86_64-linode78)",
+      "label": "Fancy",
+      "name": "vps-linode",
       "plan_id": 1,
-
-      "disk_size": 2048
+      "root_pass": "l3tM31n",
+      "ssh_username": "root"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": ["echo Hello > /root/message.txt"]
     }
   ]
 }

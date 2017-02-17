@@ -11,9 +11,11 @@ import (
 
 func main() {
 	apiKey := os.Getenv("LINODE_API_KEY")
-	images, err := linode.ImageList(context.Background(), apiKey, false, 0)
+	kernels, err := linode.AvailKernels(context.Background(), apiKey)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(images)
+	for _, kernel := range kernels {
+		fmt.Println(kernel)
+	}
 }

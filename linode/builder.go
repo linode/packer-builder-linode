@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/multistep"
-	// "github.com/mitchellh/packer/helper/communicator"
+	"github.com/mitchellh/packer/common"
+	"github.com/mitchellh/packer/helper/communicator"
 	"github.com/mitchellh/packer/helper/config"
 	"github.com/mitchellh/packer/packer"
 )
@@ -25,7 +27,8 @@ type Builder struct {
 
 func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
 	if err = config.Decode(&b.config, &config.DecodeOpts{
-		Interpolate: true,
+		Interpolate:        true,
+		InterpolateContext: &b.config.interCtx,
 	}, raws...); err != nil {
 		return warnings, err
 	}
@@ -133,7 +136,6 @@ func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
 			log.Printf("  RAM: %d", plan.RAM)
 			log.Printf("  Xfer: %d", plan.Xfer)
 			log.Printf("  Price: %f", plan.Price)
-			log.Printf(fmt.Sprintf("  %d: %s", plan.ID, plan.Label))
 		}
 	}
 	if b.config.PlanID == 0 && b.config.PlanName != "" {
@@ -154,6 +156,41 @@ func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
 		return warnings, errors.New("one configuration value of `plan_name` or `plan_id` must be specified (run again with PACKER_LOG set to see available plans)")
 	}
 
+	/* -- Kernel -- */
+
+	var kernels []Kernel
+	if b.config.KernelID == 0 {
+		if kernels, err = AvailKernels(b.ctx, b.config.APIKey); err != nil {
+			return warnings, err
+		}
+	}
+	showKernels := func() {
+		if kernels == nil {
+			return
+		}
+		log.Print("Available kernels:")
+		for _, kernel := range kernels {
+			log.Printf(fmt.Sprintf("  %d: %s", kernel.ID, kernel.Label))
+		}
+	}
+	if b.config.KernelID == 0 && b.config.KernelName != "" {
+		for _, kernel := range kernels {
+			if kernel.Label == b.config.KernelName {
+				b.config.KernelID = kernel.ID
+				break
+			}
+		}
+		if b.config.KernelID == 0 {
+			showKernels()
+			return warnings, fmt.Errorf("no kernel found with name \"%s\" (run again with PACKER_LOG set to see available kernels)", b.config.KernelName)
+		}
+	}
+
+	if b.config.KernelID == 0 {
+		showKernels()
+		return warnings, errors.New("one configuration value of `kernel_name` or `kernel_id` must be specified (run again with PACKER_LOG set to see available kernels)")
+	}
+
 	if b.config.Label == "" {
 		return warnings, errors.New("configuration value `label` not defined")
 	}
@@ -166,6 +203,10 @@ func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
 		return warnings, errors.New("configuration value `root_pass` not defined")
 	}
 
+	if es := b.config.Comm.Prepare(&b.config.interCtx); len(es) > 0 {
+		return warnings, multierror.Append(err, es...)
+	}
+
 	return warnings, nil
 }
 
@@ -175,18 +216,24 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 	state := new(multistep.BasicStateBag)
 	state.Put("config", b.config)
 	state.Put("ctx", b.ctx)
+	state.Put("hook", hook)
 	state.Put("ui", ui)
+	state.Put("root_pass", b.config.RootPass)
 
 	steps := []multistep.Step{
 		new(stepCreateLinode),
 		new(stepCreateDisk),
+		new(stepCreateConfig),
+		new(stepBoot),
 		new(stepLinodeIP),
-		// TODO: connect to the server and run provisioners
-		/*
-			&communicator.StepConnect{
-				Host: commHost,
-			},
-		*/
+		// new(stepConnect),
+		// new(stepProvision),
+		&communicator.StepConnect{
+			Config:    &b.config.Comm,
+			Host:      commHost,
+			SSHConfig: sshConfig,
+		},
+		new(common.StepProvision),
 		new(stepImagize),
 	}
 

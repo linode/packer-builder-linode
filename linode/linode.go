@@ -34,6 +34,31 @@ func (r LinodeResponse) Errors() []error {
 	return errs
 }
 
+type Linode struct {
+	ID     int `json:"LINODEID"`
+	Status int `json:"STATUS"`
+}
+
+func (l Linode) Running() bool {
+	return l.Status == 1
+}
+
+func LinodeList(ctx context.Context, apiKey string, linodeId int) ([]Linode, error) {
+	params := make(map[string]string)
+	if linodeId != 0 {
+		params["LinodeID"] = strconv.Itoa(linodeId)
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.list", params)
+	if err != nil {
+		return nil, err
+	}
+	var parsedData []Linode
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return nil, err
+	}
+	return parsedData, nil
+}
+
 func LinodeCreate(ctx context.Context, apiKey string, datacenterId, planId, paymentTerm int) (linodeId int, err error) {
 	params := map[string]string{
 		"DatacenterID": strconv.Itoa(datacenterId),
@@ -169,6 +194,26 @@ func AvailDatacenters(ctx context.Context, apiKey string) ([]Datacenter, error) 
 		return nil, err
 	}
 	var parsedData []Datacenter
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return nil, err
+	}
+	return parsedData, nil
+}
+
+type Kernel struct {
+	ID      int       `json:"KERNELID"`
+	Label   string    `json:"LABEL"`
+	IsXEN   LinodeInt `json:"ISXEN"`
+	IsKVM   LinodeInt `json:"ISKVM"`
+	IsPVOPS LinodeInt `json:"ISPVOPS"`
+}
+
+func AvailKernels(ctx context.Context, apiKey string) ([]Kernel, error) {
+	data, err := makeLinodeRequest(ctx, apiKey, "avail.kernels", nil)
+	if err != nil {
+		return nil, err
+	}
+	var parsedData []Kernel
 	if err := json.Unmarshal(data, &parsedData); err != nil {
 		return nil, err
 	}
@@ -316,6 +361,72 @@ func LinodeIPList(ctx context.Context, apiKey string, linodeId, ipAddressId int)
 		return nil, err
 	}
 	return parsedData, nil
+}
+
+func LinodeBoot(ctx context.Context, apiKey string, linodeId, configId int) (int, error) {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+	}
+	if configId != 0 {
+		params["ConfigID"] = strconv.Itoa(configId)
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.boot", params)
+	if err != nil {
+		return 0, err
+	}
+	var parsedData struct {
+		JobID int `json:"JobID"`
+	}
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return 0, err
+	}
+	return parsedData.JobID, nil
+}
+
+func LinodeShutdown(ctx context.Context, apiKey string, linodeId int) (int, error) {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.shutdown", params)
+	if err != nil {
+		return 0, err
+	}
+	var parsedData struct {
+		JobID int `json:"JobID"`
+	}
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return 0, err
+	}
+	return parsedData.JobID, nil
+}
+
+func LinodeConfigCreate(ctx context.Context, apiKey string, linodeId, diskId, kernelId int, label string) (int, error) {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+		"KernelID": strconv.Itoa(kernelId),
+		"DiskList": strconv.Itoa(diskId),
+		"Label":    label,
+	}
+	data, err := makeLinodeRequest(ctx, apiKey, "linode.config.create", params)
+	if err != nil {
+		return 0, err
+	}
+	var parsedData struct {
+		ConfigID int `json:"ConfigID"`
+	}
+	if err := json.Unmarshal(data, &parsedData); err != nil {
+		return 0, err
+	}
+	return parsedData.ConfigID, nil
+}
+
+func LinodeConfigDelete(ctx context.Context, apiKey string, linodeId, configId int) error {
+	params := map[string]string{
+		"LinodeID": strconv.Itoa(linodeId),
+		"ConfigID": strconv.Itoa(configId),
+	}
+	_, err := makeLinodeRequest(ctx, apiKey, "linode.config.delete", params)
+	return err
 }
 
 // makeLinodeRequest executes a request against Linode's API and returns a

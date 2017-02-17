@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dradtke/packer-builder-linode/linode"
+	// "github.com/dradtke/packer-builder-linode/linode"
+	"github.com/mitchellh/packer/builder/linode"
 )
 
 var (
