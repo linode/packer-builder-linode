@@ -12,6 +12,7 @@ func commHost(state multistep.StateBag) (string, error) {
 func sshConfig(state multistep.StateBag) (*ssh.ClientConfig, error) {
 	return &ssh.ClientConfig{
 		User: "root",
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Auth: []ssh.AuthMethod{
 			ssh.Password(state.Get("root_pass").(string)),
 		},
