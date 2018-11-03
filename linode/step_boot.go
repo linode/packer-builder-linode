@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 
@@ -13,9 +13,8 @@ type stepBoot struct {
 	booted bool
 }
 
-func (s *stepBoot) Run(state multistep.StateBag) multistep.StepAction {
+func (s *stepBoot) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
 	ui.Say("Booting Linode...")

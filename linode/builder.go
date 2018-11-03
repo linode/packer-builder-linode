@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/multistep"
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/helper/communicator"
 	"github.com/hashicorp/packer/helper/config"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 

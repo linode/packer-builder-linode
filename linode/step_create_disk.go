@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 
 type stepCreateDisk struct{}
 
-func (s *stepCreateDisk) Run(state multistep.StateBag) multistep.StepAction {
+func (s *stepCreateDisk) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
 	ui.Say("Creating disk...")

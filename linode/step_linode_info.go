@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 
 type stepLinodeIP struct{}
 
-func (s *stepLinodeIP) Run(state multistep.StateBag) multistep.StepAction {
+func (s *stepLinodeIP) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
 	ips, err := LinodeIPList(
