@@ -3,13 +3,39 @@ package linode
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/version"
+	"github.com/linode/linodego"
+	"golang.org/x/oauth2"
 )
+
+func newLinodeClient(token string) linodego.Client {
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+
+	oauthTransport := &oauth2.Transport{
+		Source: tokenSource,
+	}
+	loggingTransport := logging.NewTransport("Linode", oauthTransport)
+	oauth2Client := &http.Client{
+		Transport: loggingTransport,
+	}
+
+	client := linodego.NewClient(oauth2Client)
+
+	projectURL := "https://www.packer.io"
+	userAgent := fmt.Sprintf("Packer/%s (+%s) linodego/%s",
+		version.String(), projectURL, linodego.Version)
+
+	client.SetUserAgent(userAgent)
+	return client
+}
 
 type LinodeError struct {
 	Code    int    `json:"ERRORCODE"`
@@ -61,8 +87,8 @@ func LinodeList(ctx context.Context, apiKey string, linodeId int) ([]Linode, err
 
 func LinodeCreate(ctx context.Context, apiKey string, datacenterId, planId, paymentTerm int) (linodeId int, err error) {
 	params := map[string]string{
-		"DatacenterID": strconv.Itoa(datacenterId),
-		"PlanID":       strconv.Itoa(planId),
+		"Region": strconv.Itoa(datacenterId),
+		"PlanID": strconv.Itoa(planId),
 	}
 	if paymentTerm != 0 {
 		params["PaymentTerm"] = strconv.Itoa(paymentTerm)
