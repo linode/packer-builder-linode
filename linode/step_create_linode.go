@@ -21,6 +21,10 @@ func (s *stepCreateLinode) Run(ctx context.Context, state multistep.StateBag) mu
 	createOpts := linodego.InstanceCreateOptions{
 		RootPass:       c.Comm.Password(),
 		AuthorizedKeys: []string{string(c.Comm.SSHPublicKey)},
+		Region:         c.Region,
+		Type:           c.InstanceType,
+		Label:          c.Label,
+		Image:          c.Image,
 	}
 	client.CreateInstance(ctx, createOpts)
 	linodeId, err := LinodeCreate(
