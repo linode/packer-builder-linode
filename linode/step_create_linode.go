@@ -4,22 +4,33 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
+	"github.com/linode/linodego"
 )
 
 type stepCreateLinode struct{}
 
-func (s *stepCreateLinode) Run(state multistep.StateBag) multistep.StepAction {
+func (s *stepCreateLinode) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
 	ui.Say("Creating Linode...")
+	client := linodego.NewClient()
+
+	createOpts := linodego.InstanceCreateOptions{
+		RootPass:       c.Comm.Password(),
+		AuthorizedKeys: []string{string(c.Comm.SSHPublicKey)},
+		Region:         c.Region,
+		Type:           c.InstanceType,
+		Label:          c.Label,
+		Image:          c.Image,
+	}
+	client.CreateInstance(ctx, createOpts)
 	linodeId, err := LinodeCreate(
 		ctx,
 		c.APIKey,
-		c.DatacenterID,
+		c.Region,
 		c.PlanID,
 		c.PaymentTerm,
 	)

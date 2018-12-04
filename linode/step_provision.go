@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 	"golang.org/x/crypto/ssh"
 )

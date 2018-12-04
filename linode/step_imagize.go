@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mitchellh/multistep"
+	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 
 type stepImagize struct{}
 
-func (s *stepImagize) Run(state multistep.StateBag) multistep.StepAction {
+func (s *stepImagize) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
 	ui.Say("Imagizing...")
