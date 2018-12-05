@@ -1,22 +1,22 @@
 {
   "variables": {
-    "linode_api_key": "{{env `LINODE_API_KEY`}}"
+    "personal_access_token": "{{env `LINODE_TOKEN`}}",
+    "root_pass": "{{env `ROOT_PASSWORD`}}"
   },
   "builders": [
     {
       "type": "linode",
 
-      "api_key": "{{user `linode_api_key`}}",
-      "datacenter_name": "atlanta",
-      "description": "Oh so fancy",
-      "distribution_name": "openSUSE Leap 42.2",
-      "disk_size": 2048,
-      "kernel_name": "Latest 64 bit (4.8.6-x86_64-linode78)",
-      "label": "Fancy",
-      "name": "vps-linode",
-      "plan_id": 1,
-      "root_pass": "l3tM31n",
-      "ssh_username": "root"
+      "personal_access_token": "{{user `personal_access_token`}}",
+      "instance_type": "g6-standard-2",
+      "image": "linode/opensuse15.0",
+      "region": "us-central",
+      "root_pass": "{{user `root_pass`}}",
+      "label": "My_Fancy_Image",
+
+      "ssh_timeout": "1h",
+      "ssh_username": "root",
+      "ssh_password": "{{user `root_pass`}}"
     }
   ],
   "provisioners": [

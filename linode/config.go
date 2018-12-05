@@ -3,7 +3,6 @@ package linode
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Config struct {
@@ -21,8 +19,7 @@ type Config struct {
 	ctx                 interpolate.Context
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	Token  string `mapstructure:"token"`
-	APIURL string `mapstructure:"api_url"`
+	PersonalAccessToken string `mapstructure:"personal_access_token"`
 
 	Region string `mapstructure:"region"`
 
@@ -36,7 +33,7 @@ type Config struct {
 	// Optional label for the Linode Instance created
 	Label string
 	// Optional tags for the Linode Instance created
-	Tags string
+	Tags []string
 
 	// Optional label for the Linode Image created
 	ImageLabel string //optional
@@ -47,15 +44,16 @@ type Config struct {
 	// Optional SSH Key for the root account
 	RootSSHKey string
 
-	interCtx interpolate.Context
+	RawStateTimeout string `mapstructure:"state_timeout"`
+
+	stateTimeout time.Duration
+	interCtx     interpolate.Context
 }
 
-func newConfig(raws ...interface{}) (c *Config, warnings []string, err error) {
-	c = new(Config)
+func NewConfig(raws ...interface{}) (*Config, []string, error) {
+	c := new(Config)
 
-	var md mapstructure.Metadata
-	err = config.Decode(c, &config.DecodeOpts{
-		Metadata:           &md,
+	if err := config.Decode(c, &config.DecodeOpts{
 		Interpolate:        true,
 		InterpolateContext: &c.ctx,
 		InterpolateFilter: &interpolate.RenderFilter{
@@ -63,27 +61,19 @@ func newConfig(raws ...interface{}) (c *Config, warnings []string, err error) {
 				"run_command",
 			},
 		},
-	}, raws...)
-	if err != nil {
+	}, raws...); err != nil {
 		return nil, nil, err
 	}
 
-	// Defaults
-	if c.Token == "" {
-		// Default to environment variable for api_token, if it exists
-		c.Token = os.Getenv("LINODE_TOKEN")
-	}
-	if c.APIURL == "" {
-		c.APIURL = os.Getenv("LINODE_API_URL")
-	}
-	if c.ImageLabel == "" {
-		def, err := interpolate.Render("packer-{{timestamp}}", nil)
-		if err != nil {
-			panic(err)
-		}
+	var errs *packer.MultiError
 
-		// Default to packer-{{ unix timestamp (utc) }}
-		c.ImageLabel = def
+	// Defaults
+	if c.ImageLabel == "" {
+		if def, err := interpolate.Render("packer-{{timestamp}}", nil); err == nil {
+			c.ImageLabel = def
+		} else {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to render image name: %s", err))
+		}
 	}
 
 	if c.Label == "" {
@@ -91,20 +81,24 @@ func newConfig(raws ...interface{}) (c *Config, warnings []string, err error) {
 		c.Label = fmt.Sprintf("packer-%s", uuid.TimeOrderedUUID())
 	}
 
-	if c.StateTimeout == 0 {
-		// Default to 6 minute timeouts waiting for
-		// desired state. i.e waiting for droplet to become active
-		c.StateTimeout = 6 * time.Minute
+	if c.RawStateTimeout == "" {
+		c.stateTimeout = 5 * time.Minute
+	} else {
+		if stateTimeout, err := time.ParseDuration(c.RawStateTimeout); err == nil {
+			c.stateTimeout = stateTimeout
+		} else {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to parse state timeout: %s", err))
+		}
 	}
 
-	var errs *packer.MultiError
 	if es := c.Comm.Prepare(&c.ctx); len(es) > 0 {
 		errs = packer.MultiErrorAppend(errs, es...)
 	}
-	if c.Token == "" {
+
+	if c.PersonalAccessToken == "" {
 		// Required configurations that will display errors if not set
 		errs = packer.MultiErrorAppend(
-			errs, errors.New("token is required"))
+			errs, errors.New("personal access token is required"))
 	}
 
 	if c.Region == "" {
@@ -137,6 +131,6 @@ func newConfig(raws ...interface{}) (c *Config, warnings []string, err error) {
 		return nil, nil, errs
 	}
 
-	packer.LogSecretFilter.Set(c.Token)
+	packer.LogSecretFilter.Set(c.PersonalAccessToken)
 	return c, nil, nil
 }

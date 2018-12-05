@@ -67,6 +67,11 @@ func (s *StepCreateSSHKey) Run(_ context.Context, state multistep.StateBag) mult
 	config.Comm.SSHPrivateKey = pem.EncodeToMemory(&priv_blk)
 	config.Comm.SSHPublicKey = ssh.MarshalAuthorizedKey(pub)
 
+	// Linode has a serious issue with the newline that the ssh package appends to the end of the key.
+	if config.Comm.SSHPublicKey[len(config.Comm.SSHPublicKey)-1] == '\n' {
+		config.Comm.SSHPublicKey = config.Comm.SSHPublicKey[:len(config.Comm.SSHPublicKey)-1]
+	}
+
 	if s.Debug {
 		ui.Message(fmt.Sprintf("Saving key for debug purposes: %s", s.DebugKeyPath))
 		f, err := os.Create(s.DebugKeyPath)

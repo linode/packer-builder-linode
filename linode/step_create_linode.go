@@ -3,20 +3,22 @@ package linode
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 	"github.com/linode/linodego"
 )
 
-type stepCreateLinode struct{}
+type stepCreateLinode struct {
+	client linodego.Client
+}
 
 func (s *stepCreateLinode) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
-	c := state.Get("config").(Config)
+	c := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
 
 	ui.Say("Creating Linode...")
-	client := linodego.NewClient()
 
 	createOpts := linodego.InstanceCreateOptions{
 		RootPass:       c.Comm.Password(),
@@ -26,41 +28,66 @@ func (s *stepCreateLinode) Run(ctx context.Context, state multistep.StateBag) mu
 		Label:          c.Label,
 		Image:          c.Image,
 	}
-	client.CreateInstance(ctx, createOpts)
-	linodeId, err := LinodeCreate(
-		ctx,
-		c.APIKey,
-		c.Region,
-		c.PlanID,
-		c.PaymentTerm,
-	)
+
+	instance, err := s.client.CreateInstance(ctx, createOpts)
 	if err != nil {
 		err = errors.New("Error creating Linode: " + err.Error())
 		state.Put("error", err)
 		ui.Error(err.Error())
 		return multistep.ActionHalt
 	}
+	state.Put("instance", instance)
 
-	state.Put("linode_id", linodeId)
+	// wait until instance is running
+	for instance.Status != linodego.InstanceRunning {
+		time.Sleep(2 * time.Second)
+		if instance, err = s.client.GetInstance(ctx, instance.ID); err != nil {
+			err = errors.New("Error creating Linode: " + err.Error())
+			state.Put("error", err)
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		}
+		state.Put("instance", instance)
+	}
+
+	disk, err := s.findDisk(ctx, instance.ID)
+	if err != nil {
+		err = errors.New("Error creating Linode: " + err.Error())
+		state.Put("error", err)
+		ui.Error(err.Error())
+		return multistep.ActionHalt
+	} else if disk == nil {
+		err := errors.New("Error creating Linode: no suitable disk was found")
+		state.Put("error", err)
+		ui.Error(err.Error())
+		return multistep.ActionHalt
+	}
+	state.Put("disk", disk)
 	return multistep.ActionContinue
 }
 
+func (s *stepCreateLinode) findDisk(ctx context.Context, instanceID int) (*linodego.InstanceDisk, error) {
+	disks, err := s.client.ListInstanceDisks(ctx, instanceID, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, disk := range disks {
+		if disk.Filesystem != linodego.FilesystemSwap {
+			return &disk, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *stepCreateLinode) Cleanup(state multistep.StateBag) {
-	linodeId, ok := state.GetOk("linode_id")
+	instance, ok := state.GetOk("instance")
 	if !ok {
 		return
 	}
 
-	c := state.Get("config").(Config)
-	ctx := state.Get("ctx").(context.Context)
 	ui := state.Get("ui").(packer.Ui)
 
-	if err := LinodeDelete(
-		ctx,
-		c.APIKey,
-		linodeId.(int),
-		false,
-	); err != nil {
+	if err := s.client.DeleteInstance(context.Background(), instance.(*linodego.Instance).ID); err != nil {
 		ui.Error("Error cleaning up Linode: " + err.Error())
 	}
 }

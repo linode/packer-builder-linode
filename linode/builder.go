@@ -3,14 +3,12 @@
 package linode
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
-	"time"
 
 	"github.com/hashicorp/packer/common"
+	"github.com/linode/linodego"
 
 	"github.com/hashicorp/packer/helper/communicator"
 	"github.com/hashicorp/packer/helper/multistep"
@@ -22,31 +20,23 @@ const BuilderID = "packer.linode"
 
 // Builder represents a Packer Builder.
 type Builder struct {
-	config Config
+	config *Config
 	runner multistep.Runner
-
-	ctxCancel context.CancelFunc
-	cancel    context.CancelFunc
 }
 
-func (b *Builder) Prepare(raws ...interface{}) (warnings []string, err error) {
-	c, errs := NewConfig(raws...)
+func (b *Builder) Prepare(raws ...interface{}) ([]string, error) {
+	c, warnings, errs := NewConfig(raws...)
 	if errs != nil {
-		return nil, errs
+		return warnings, errs
 	}
 	b.config = c
-
 	return nil, nil
 }
 
 func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret packer.Artifact, err error) {
 	ui.Say("Running builder ...")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	b.ctxCancel = cancel
-	defer cancel()
-
-	client := newLinodeClient(b.Config.Token)
+	client := newLinodeClient(b.config.PersonalAccessToken)
 
 	if err != nil {
 		ui.Error(err.Error())
@@ -54,38 +44,34 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 	}
 
 	state := new(multistep.BasicStateBag)
-	state.Put("client", client)
 	state.Put("config", b.config)
 	state.Put("hook", hook)
 	state.Put("ui", ui)
 
 	steps := []multistep.Step{
 		&StepCreateSSHKey{
-			Debug:          b.config.PackerDebug,
-			DebugKeyPath:   fmt.Sprintf("linode_%s.pem", b.config.PackerBuildName),
-			PrivateKeyFile: b.config.Comm.SSHPrivateKey,
+			Debug:        b.config.PackerDebug,
+			DebugKeyPath: fmt.Sprintf("linode_%s.pem", b.config.PackerBuildName),
 		},
-		new(stepCreateLinode),
-		new(stepCreateDisk),
-		new(stepCreateConfig),
-		new(stepBoot),
-		new(stepLinodeIP),
-		// new(stepConnect),
-		// new(stepProvision),
+		&stepCreateLinode{client},
 		&communicator.StepConnect{
 			Config:    &b.config.Comm,
 			Host:      commHost,
 			SSHConfig: b.config.Comm.SSHConfigFunc(),
 		},
-		new(common.StepProvision),
+		&common.StepProvision{},
 		&common.StepCleanupTempKeys{
 			Comm: &b.config.Comm,
 		},
-		new(stepImagize),
+		&stepCreateImage{client},
 	}
 
 	b.runner = common.NewRunnerWithPauseFn(steps, b.config.PackerConfig, ui, state)
 	b.runner.Run(state)
+
+	if rawErr, ok := state.GetOk("error"); ok {
+		return nil, rawErr.(error)
+	}
 
 	// If we were interrupted or cancelled, then just exit.
 	if _, ok := state.GetOk(multistep.StateCancelled); ok {
@@ -96,42 +82,19 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 		return nil, errors.New("Build was halted.")
 	}
 
-	if _, ok := state.GetOk("image_label"); !ok {
-		return nil, errors.New("Cannot find image_label in state.")
+	if _, ok := state.GetOk("image"); !ok {
+		return nil, errors.New("Cannot find image in state.")
 	}
 
-	if rawErr, ok := state.GetOk("error"); ok {
-		return nil, rawErr.(error)
-	}
-
+	image := state.Get("image").(*linodego.Image)
 	artifact := Artifact{
-		client:     client,
-		ImageLabel: state.Get("image_label").(string),
-		ImageID:    state.Get("image_id").(int),
+		ImageLabel: image.Label,
+		ImageID:    image.ID,
 	}
 
 	return artifact, nil
 }
 
-func waitForJob(ui packer.Ui, ctx context.Context, config Config, linodeId, jobId int) error {
-	ui.Message("--> Waiting for job " + strconv.Itoa(jobId) + " to complete")
-	for {
-		jobs, err := LinodeJobList(ctx, config.APIKey, linodeId, jobId, false)
-		if err != nil {
-			return err
-		}
-		if jobs[0].HostFinishDate != "" {
-			if int(jobs[0].HostSuccess) == 0 {
-				return errors.New(jobs[0].HostMessage)
-			}
-			break
-		}
-		time.Sleep(2 * time.Second)
-	}
-	return nil
-}
-
-// Cancel.
 func (b *Builder) Cancel() {
 	if b.runner != nil {
 		log.Println("Cancelling the step runner...")
