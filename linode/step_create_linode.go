@@ -27,6 +27,7 @@ func (s *stepCreateLinode) Run(ctx context.Context, state multistep.StateBag) mu
 		Type:           c.InstanceType,
 		Label:          c.Label,
 		Image:          c.Image,
+		SwapSize:       &c.SwapSize,
 	}
 
 	instance, err := s.client.CreateInstance(ctx, createOpts)

@@ -13,28 +13,56 @@ $ go get -d github.com/hashicorp/packer
 $ go get -d github.com/dradtke/packer-builder-linode
 ```
 
-Then copy the contents of `linode/` to Packer's source tree:
+Then copy the contents of `linode/` and `test/` to Packer's source tree:
 
 ```sh
 $ cp -r linode $GOPATH/src/github.com/hashicorp/packer/builder/
+$ cp -r test $GOPATH/src/github.com/hashicorp/packer/test
 ```
 
 Then open up Packer's file `command/plugin.go` and add Linode as a new builder.
+
+```patch
+diff --git a/command/plugin.go b/command/plugin.go
+index 2d2272640..2d126454c 100644
+--- a/command/plugin.go
++++ b/command/plugin.go
+@@ -28,6 +28,7 @@ import (
+ 	hcloudbuilder "github.com/hashicorp/packer/builder/hcloud"
+ 	hypervisobuilder "github.com/hashicorp/packer/builder/hyperv/iso"
+ 	hypervvmcxbuilder "github.com/hashicorp/packer/builder/hyperv/vmcx"
++	linodebuilder "github.com/hashicorp/packer/builder/linode"
+ 	lxcbuilder "github.com/hashicorp/packer/builder/lxc"
+ 	lxdbuilder "github.com/hashicorp/packer/builder/lxd"
+ 	ncloudbuilder "github.com/hashicorp/packer/builder/ncloud"
+@@ -101,6 +102,7 @@ var Builders = map[string]packer.Builder{
+ 	"hcloud":              new(hcloudbuilder.Builder),
+ 	"hyperv-iso":          new(hypervisobuilder.Builder),
+ 	"hyperv-vmcx":         new(hypervvmcxbuilder.Builder),
++	"linode":              new(linodebuilder.Builder),
+ 	"lxc":                 new(lxcbuilder.Builder),
+ 	"lxd":                 new(lxdbuilder.Builder),
+ 	"ncloud":              new(ncloudbuilder.Builder),
+```
+
 Then you can `go install` Packer, and it will have support for the "linode"
 plugin.
 
+
+
 ## Configuration
 
-Check out `testdata/linode.json` for an example Packer file that uses the
+Check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
 Linode builder. Some notes:
 
-1. You will need a Linode API key. Naturally it's a bad idea to
+1. You will need a Linode API Token. Naturally it's a bad idea to
    hard-code it, so you will probably want to pull it from an environment
-   variable, which is what `linode.json` does.
-2. A number of values have both a `*_name` and `*_id` variant. If the `*_id`
-   version is passed, it expects an integer ID corresponding to that resource
-   in Linode; if `*_name` is used, then an API call will be made to determine
-   what's available, and pick the one matching the name.
-3. `ssh_username` is required, but the only supported value for it is "root".
-   Packer's SSH provisioning requires that it be defined, but Linode only
-   creates a root user during setup.
+   variable, which is what `minimal.json` does.
+1. `ssh_username` is required, generally this value should be `root`.
+   All Linode images use `root`, except for `linode/containerlinux` which
+   uses `core`.
+
+```sh
+$ make dev
+$ bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
+```
