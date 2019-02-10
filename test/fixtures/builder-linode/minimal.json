@@ -8,7 +8,7 @@
         "linode_token": "{{user `linode_token`}}",
 
         "region": "us-central",
-        "swap_size": 0,
+        "swap_size": 256,
         "image": "linode/debian9",
         "instance_type": "g6-nanode-1",
         "instance_label": "packerbats-minimal-{{timestamp}}",
