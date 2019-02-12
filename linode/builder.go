@@ -63,6 +63,7 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 		&common.StepCleanupTempKeys{
 			Comm: &b.config.Comm,
 		},
+		&stepShutdownLinode{client},
 		&stepCreateImage{client},
 	}
 
