@@ -1,6 +1,8 @@
 package linode
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"regexp"
@@ -19,35 +21,33 @@ type Config struct {
 	ctx                 interpolate.Context
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	PersonalAccessToken string `mapstructure:"personal_access_token"`
+	PersonalAccessToken string `mapstructure:"linode_token"`
 
-	Region string `mapstructure:"region"`
-
-	InstanceType string `mapstructure:"instance_type"`
-
-	Image string `mapstructure:"image"`
-
-	DiskSize int    `mapstructure:"disk_size"`
-	RootPass string `mapstructure:"root_pass"`
-
-	// Optional label for the Linode Instance created
-	Label string
-	// Optional tags for the Linode Instance created
-	Tags []string
-
-	// Optional label for the Linode Image created
-	ImageLabel string //optional
-
-	// Optional Description for the Linode Image created
-	Description string
-
-	// Optional SSH Key for the root account
-	RootSSHKey string
+	Region       string   `mapstructure:"region"`
+	InstanceType string   `mapstructure:"instance_type"`
+	Label        string   `mapstructure:"instance_label"`
+	Tags         []string `mapstructure:"instance_tags"`
+	Image        string   `mapstructure:"image"`
+	SwapSize     int      `mapstructure:"swap_size"`
+	RootPass     string   `mapstructure:"root_pass"`
+	RootSSHKey   string   `mapstructure:"root_ssh_key"`
+	ImageLabel   string   `mapstructure:"image_label"`
+	Description  string   `mapstructure:"image_description"`
 
 	RawStateTimeout string `mapstructure:"state_timeout"`
 
 	stateTimeout time.Duration
 	interCtx     interpolate.Context
+}
+
+func createRandomRootPassword() (string, error) {
+	rawRootPass := make([]byte, 50)
+	_, err := rand.Read(rawRootPass)
+	if err != nil {
+		return "", fmt.Errorf("Failed to generate random password")
+	}
+	rootPass := base64.StdEncoding.EncodeToString(rawRootPass)
+	return rootPass, nil
 }
 
 func NewConfig(raws ...interface{}) (*Config, []string, error) {
@@ -81,6 +81,14 @@ func NewConfig(raws ...interface{}) (*Config, []string, error) {
 		c.Label = fmt.Sprintf("packer-%s", uuid.TimeOrderedUUID())
 	}
 
+	if c.RootPass == "" {
+		var err error
+		c.RootPass, err = createRandomRootPassword()
+		if err != nil {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to generate root_pass: %s", err))
+		}
+	}
+
 	if c.RawStateTimeout == "" {
 		c.stateTimeout = 5 * time.Minute
 	} else {
@@ -95,10 +103,12 @@ func NewConfig(raws ...interface{}) (*Config, []string, error) {
 		errs = packer.MultiErrorAppend(errs, es...)
 	}
 
+	c.Comm.SSHPassword = c.RootPass
+
 	if c.PersonalAccessToken == "" {
 		// Required configurations that will display errors if not set
 		errs = packer.MultiErrorAppend(
-			errs, errors.New("personal access token is required"))
+			errs, errors.New("linode_token is required"))
 	}
 
 	if c.Region == "" {

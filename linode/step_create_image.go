@@ -17,6 +17,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 	c := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
 	disk := state.Get("disk").(*linodego.InstanceDisk)
+	instance := state.Get("instance").(*linodego.Instance)
 
 	ui.Say("Creating image...")
 	image, err := s.client.CreateImage(ctx, linodego.ImageCreateOptions{
@@ -24,17 +25,21 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 		Label:       c.Label,
 		Description: c.Description,
 	})
+
+	if err == nil {
+		_, err = s.client.WaitForInstanceDiskStatus(ctx, instance.ID, disk.ID, linodego.DiskReady, 600)
+	}
+
+	if err == nil {
+		image, err = s.client.GetImage(ctx, image.ID)
+	}
+
 	if err != nil {
 		err = errors.New("Error creating image: " + err.Error())
 		state.Put("error", err)
 		ui.Error(err.Error())
 		return multistep.ActionHalt
 	}
-
-	// TODO: We need to find some way to wait until the image is done being created.
-	// With this implementation as it stands, the image gets cleaned up almost immediately for some reason.
-	// My best guess is that it gets deleted when we clean up the Linode instance because it's still
-	// being used in the imaging process.
 
 	state.Put("image", image)
 	return multistep.ActionContinue
