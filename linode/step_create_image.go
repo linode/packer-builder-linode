@@ -22,7 +22,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 	ui.Say("Creating image...")
 	image, err := s.client.CreateImage(ctx, linodego.ImageCreateOptions{
 		DiskID:      disk.ID,
-		Label:       c.Label,
+		Label:       c.ImageLabel,
 		Description: c.Description,
 	})
 
