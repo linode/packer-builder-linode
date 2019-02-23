@@ -39,6 +39,17 @@ HashiCorp provides excellent guidance on how to build, use, and debug plugins:
 
 * <https://www.packer.io/docs/extending/plugins.html>
 
+Helper tools to interact with the Linode objects exist in the `cmd/` assist in development.
+These can be built with `go build` from their path.  They all expect a `LINODE_TOKEN` environment variable to be set.
+
+* `list_images` - Lists all images, both public and private
+* `list_events` - Lists the most recent page of events
+* `list_kernels` - Lists all kernels
+* `delete_image` - Deletes a single image whose *numeric* ID is required (`delete_image 123` to remove image `private/123`)
+
+The [Linode CLI](https://www.linode.com/docs/platform/api/using-the-linode-cli/) can also help during development.
+Install it by running `pip install linode-cli`.
+
 ### Patching the Packer build tree
 
 These instructions are an alternative to installing `packer-builder-linode` as a plugin.

@@ -1,5 +1,5 @@
 PROG := packer-builder-linode
-INSTALL_DIR := ~/.packer.d/plugins
+INSTALL_DIR := $${HOME}/.packer.d/plugins
 
 GOOS ?= $(shell go env GOOS)
 
@@ -7,6 +7,7 @@ export GO111MODULE=on
 
 ifeq ($(GOOS),windows)
 	BIN_SUFFIX := ".exe"
+	INSTALL_DIR := $${APPDATA}/packer.d/plugins
 endif
 
 .PHONY: test
