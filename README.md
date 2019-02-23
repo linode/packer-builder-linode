@@ -40,13 +40,13 @@ HashiCorp provides excellent guidance on how to build, use, and debug plugins:
 
 * <https://www.packer.io/docs/extending/plugins.html>
 
-Helper tools to interact with the Linode objects exist in the `cmd/` assist in development.
-These can be built with `go build` from their path.  They all expect a `LINODE_TOKEN` environment variable to be set.
+Helper tools to interact with Linode objects and assist in development can be found in `cmd/`.
+These can be built with `go build` within their path.  They all expect a `LINODE_TOKEN` environment variable to be set.
 
-* `list_images` - Lists all images, both public and private
-* `list_events` - Lists the most recent page of events
-* `list_kernels` - Lists all kernels
-* `delete_image` - Deletes a single image whose *numeric* ID is required (`delete_image 123` to remove image `private/123`)
+* [`list-images`](cmd/list-images/main.go) - Lists all Linode images, both public and private
+* [`list-events`](cmd/list-events/main.go) - Lists the most recent page of events on the Linode account
+* [`list-kernels`](cmd/list-kernels/main.go) - Lists all Linode kernels
+* [`delete-image`](cmd/delete-image/main.go) - Deletes a single Linode image whose *numeric* ID is required (`delete_image 123` to remove image `private/123`)
 
 The [Linode CLI](https://www.linode.com/docs/platform/api/using-the-linode-cli/) can also help during development.
 Install it by running `pip install linode-cli`.
