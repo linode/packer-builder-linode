@@ -27,3 +27,8 @@ _testmain.go
 
 /packer-builder-linode
 /vendor
+
+cmd/avail-kernels/avail-kernels
+cmd/delete-image/delete-image
+cmd/list-events/list-jobs
+cmd/list-images/list-images

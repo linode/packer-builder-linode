@@ -1,23 +1,60 @@
-Linode builder plugin for Packer
-================================
+# Linode builder plugin for Packer
 
-A first-draft Packer building for creating Linode images.
+[![GoDoc](https://godoc.org/github.com/dradtke/packer-builder-linode?status.svg)](https://godoc.org/github.com/dradtke/packer-builder-linode)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dradtke/packer-builder-linode)](https://goreportcard.com/report/github.com/dradtke/packer-builder-linode)
+[![CircleCI](https://circleci.com/gh/dradtke/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/dradtke/packer-builder-linode)
+[![GitHub release](https://img.shields.io/github/release/dradtke/packer-builder-linode.svg)](https://github.com/dradtke/packer-builder-linode/releases/)
 
-## Building
+This is a Packer plug-in for building Linode images.
 
-Due to vendoring issues, at the moment this package must be built from within
-Packer's source code. So, fetch this repo and Packer:
+## Build and Install
 
 ```sh
-$ go get -d github.com/hashicorp/packer
-$ go get -d github.com/dradtke/packer-builder-linode
+git clone https://github.com/dradtke/packer-builder-linode
+cd packer-builder-linode
+make install
+```
+
+## Configuration
+
+Check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
+Linode builder. Some notes:
+
+1. You will need a Linode APIv4 Personal Access Token.
+   Get one here: <https://developers.linode.com/api/v4#section/Personal-Access-Token>
+   Naturally it's a bad idea to hard-code it, so you will probably want to pull it from an environment
+   variable, which is what `minimal.json` does.
+1. `ssh_username` is required, generally this value should be `root`.
+   All Linode images use `root`, except for `linode/containerlinux` which
+   uses `core`.
+
+```sh
+make dev
+bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
+```
+
+## Development
+
+HashiCorp provides excellent guidance on how to build, use, and debug plugins:
+
+* <https://www.packer.io/docs/extending/plugins.html>
+
+### Patching the Packer build tree
+
+These instructions are an alternative to installing `packer-builder-linode` as a plugin.
+
+To patch this plugin into Packer's source code, fetch this repository and Packer:
+
+```sh
+go get -d github.com/hashicorp/packer
+go get -d github.com/dradtke/packer-builder-linode
 ```
 
 Then copy the contents of `linode/` and `test/` to Packer's source tree:
 
 ```sh
-$ cp -r linode $GOPATH/src/github.com/hashicorp/packer/builder/
-$ cp -r test $GOPATH/src/github.com/hashicorp/packer/test
+cp -r linode $GOPATH/src/github.com/hashicorp/packer/builder/
+cp -r test $GOPATH/src/github.com/hashicorp/packer/test
 ```
 
 Then open up Packer's file `command/plugin.go` and add Linode as a new builder.
@@ -48,21 +85,6 @@ index 2d2272640..2d126454c 100644
 Then you can `go install` Packer, and it will have support for the "linode"
 plugin.
 
+## Discussion / Help
 
-
-## Configuration
-
-Check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
-Linode builder. Some notes:
-
-1. You will need a Linode API Token. Naturally it's a bad idea to
-   hard-code it, so you will probably want to pull it from an environment
-   variable, which is what `minimal.json` does.
-1. `ssh_username` is required, generally this value should be `root`.
-   All Linode images use `root`, except for `linode/containerlinux` which
-   uses `core`.
-
-```sh
-$ make dev
-$ bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
-```
+Join us at [#linodego](https://gophers.slack.com/messages/CAG93EB2S) on the [gophers slack](https://gophers.slack.com)
