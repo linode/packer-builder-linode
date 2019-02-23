@@ -17,8 +17,14 @@ make install
 
 ## Configuration
 
-Check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
-Linode builder. Some notes:
+With the plugin installed, check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
+Linode builder.
+
+```
+packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
+```
+
+Some notes:
 
 1. You will need a Linode APIv4 Personal Access Token.
    Get one here: <https://developers.linode.com/api/v4#section/Personal-Access-Token>
@@ -27,11 +33,6 @@ Linode builder. Some notes:
 1. `ssh_username` is required, generally this value should be `root`.
    All Linode images use `root`, except for `linode/containerlinux` which
    uses `core`.
-
-```sh
-make dev
-bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
-```
 
 ## Development
 
@@ -91,6 +92,13 @@ index 2d2272640..2d126454c 100644
  	"lxc":                 new(lxcbuilder.Builder),
  	"lxd":                 new(lxdbuilder.Builder),
  	"ncloud":              new(ncloudbuilder.Builder),
+```
+
+To verify that the Linode patching applied:
+
+```sh
+make dev
+bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
 ```
 
 Then you can `go install` Packer, and it will have support for the "linode"
