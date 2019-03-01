@@ -2,18 +2,20 @@ package linode
 
 import (
 	"errors"
-	"strconv"
+	"fmt"
 )
 
 type Artifact struct {
-	ImageID int
-	apiKey  string
+	ImageID    string
+	ImageLabel string
 }
 
-func (a Artifact) BuilderId() string             { return "linode" }
-func (a Artifact) Files() []string               { return nil }
-func (a Artifact) Id() string                    { return strconv.Itoa(a.ImageID) }
-func (a Artifact) String() string                { return "Linode image: " + a.Id() }
+func (a Artifact) BuilderId() string { return BuilderID }
+func (a Artifact) Files() []string   { return nil }
+func (a Artifact) Id() string        { return a.ImageID }
+func (a Artifact) String() string {
+	return fmt.Sprintf("Linode image: %s (%s)", a.ImageLabel, a.ImageID)
+}
 func (a Artifact) State(name string) interface{} { return nil }
 func (a Artifact) Destroy() error {
 	return errors.New("not implemented")

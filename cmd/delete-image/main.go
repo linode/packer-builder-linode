@@ -3,22 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
-	// "github.com/dradtke/packer-builder-linode/linode"
-	"github.com/mitchellh/packer/builder/linode"
+	"github.com/linode/linodego"
+	"golang.org/x/oauth2"
 )
 
 func main() {
-	apiKey := os.Getenv("LINODE_API_KEY")
-	imageId, err := strconv.Atoi(os.Args[1])
+	apiKey := os.Getenv("LINODE_TOKEN")
+	imageID, err := strconv.Atoi(os.Args[1])
+
 	if err != nil {
 		panic(err)
 	}
 
-	if err := linode.ImageDelete(context.Background(), apiKey, imageId); err != nil {
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: apiKey})
+	oc := &http.Client{
+		Transport: &oauth2.Transport{
+			Source: tokenSource,
+		},
+	}
+
+	linode := linodego.NewClient(oc)
+	err = linode.DeleteImage(context.Background(), fmt.Sprintf("private/%d", imageID))
+	if err != nil {
 		panic(err)
 	}
-	fmt.Println("deleted image", imageId)
+
+	fmt.Println("deleted image", imageID)
 }

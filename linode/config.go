@@ -1,8 +1,18 @@
 package linode
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"regexp"
+	"time"
+
 	"github.com/hashicorp/packer/common"
+	"github.com/hashicorp/packer/common/uuid"
 	"github.com/hashicorp/packer/helper/communicator"
+	"github.com/hashicorp/packer/helper/config"
+	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
 )
 
@@ -11,28 +21,126 @@ type Config struct {
 	ctx                 interpolate.Context
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	APIKey string `mapstructure:"api_key"`
+	PersonalAccessToken string `mapstructure:"linode_token"`
 
-	DatacenterID   int    `mapstructure:"datacenter_id"`
-	DatacenterName string `mapstructure:"datacenter_name"`
+	Region       string   `mapstructure:"region"`
+	InstanceType string   `mapstructure:"instance_type"`
+	Label        string   `mapstructure:"instance_label"`
+	Tags         []string `mapstructure:"instance_tags"`
+	Image        string   `mapstructure:"image"`
+	SwapSize     int      `mapstructure:"swap_size"`
+	RootPass     string   `mapstructure:"root_pass"`
+	RootSSHKey   string   `mapstructure:"root_ssh_key"`
+	ImageLabel   string   `mapstructure:"image_label"`
+	Description  string   `mapstructure:"image_description"`
 
-	PlanID   int    `mapstructure:"plan_id"`
-	PlanName string `mapstructure:"plan_name"`
+	RawStateTimeout string `mapstructure:"state_timeout"`
 
-	DistributionID   int    `mapstructure:"distribution_id"`
-	DistributionName string `mapstructure:"distribution_name"`
+	stateTimeout time.Duration
+	interCtx     interpolate.Context
+}
 
-	KernelID   int    `mapstructure:"kernel_id"`
-	KernelName string `mapstructure:"kernel_name"`
+func createRandomRootPassword() (string, error) {
+	rawRootPass := make([]byte, 50)
+	_, err := rand.Read(rawRootPass)
+	if err != nil {
+		return "", fmt.Errorf("Failed to generate random password")
+	}
+	rootPass := base64.StdEncoding.EncodeToString(rawRootPass)
+	return rootPass, nil
+}
 
-	DiskSize int    `mapstructure:"disk_size"`
-	RootPass string `mapstructure:"root_pass"`
+func NewConfig(raws ...interface{}) (*Config, []string, error) {
+	c := new(Config)
 
-	Label string
+	if err := config.Decode(c, &config.DecodeOpts{
+		Interpolate:        true,
+		InterpolateContext: &c.ctx,
+		InterpolateFilter: &interpolate.RenderFilter{
+			Exclude: []string{
+				"run_command",
+			},
+		},
+	}, raws...); err != nil {
+		return nil, nil, err
+	}
 
-	Description string // optional
-	RootSSHKey  string // optional
-	PaymentTerm int    // optional
+	var errs *packer.MultiError
 
-	interCtx interpolate.Context
+	// Defaults
+	if c.ImageLabel == "" {
+		if def, err := interpolate.Render("packer-{{timestamp}}", nil); err == nil {
+			c.ImageLabel = def
+		} else {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to render image name: %s", err))
+		}
+	}
+
+	if c.Label == "" {
+		// Default to packer-[time-ordered-uuid]
+		c.Label = fmt.Sprintf("packer-%s", uuid.TimeOrderedUUID())
+	}
+
+	if c.RootPass == "" {
+		var err error
+		c.RootPass, err = createRandomRootPassword()
+		if err != nil {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to generate root_pass: %s", err))
+		}
+	}
+
+	if c.RawStateTimeout == "" {
+		c.stateTimeout = 5 * time.Minute
+	} else {
+		if stateTimeout, err := time.ParseDuration(c.RawStateTimeout); err == nil {
+			c.stateTimeout = stateTimeout
+		} else {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to parse state timeout: %s", err))
+		}
+	}
+
+	if es := c.Comm.Prepare(&c.ctx); len(es) > 0 {
+		errs = packer.MultiErrorAppend(errs, es...)
+	}
+
+	c.Comm.SSHPassword = c.RootPass
+
+	if c.PersonalAccessToken == "" {
+		// Required configurations that will display errors if not set
+		errs = packer.MultiErrorAppend(
+			errs, errors.New("linode_token is required"))
+	}
+
+	if c.Region == "" {
+		errs = packer.MultiErrorAppend(
+			errs, errors.New("region is required"))
+	}
+
+	if c.InstanceType == "" {
+		errs = packer.MultiErrorAppend(
+			errs, errors.New("instance_type is required"))
+	}
+
+	if c.Image == "" {
+		errs = packer.MultiErrorAppend(
+			errs, errors.New("image is required"))
+	}
+
+	if c.Tags == nil {
+		c.Tags = make([]string, 0)
+	}
+	tagRe := regexp.MustCompile("^[[:alnum:]:_-]{1,255}$")
+
+	for _, t := range c.Tags {
+		if !tagRe.MatchString(t) {
+			errs = packer.MultiErrorAppend(errs, errors.New(fmt.Sprintf("invalid tag: %s", t)))
+		}
+	}
+
+	if errs != nil && len(errs.Errors) > 0 {
+		return nil, nil, errs
+	}
+
+	packer.LogSecretFilter.Set(c.PersonalAccessToken)
+	return c, nil, nil
 }
