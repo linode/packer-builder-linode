@@ -9,6 +9,16 @@ This is a Packer plug-in for building Linode images.
 
 ## Build and Install
 
+Go makes building and installation easy:
+
+```sh
+GOBIN=~/.packer.d/plugins go install github.com/dradtke/packer-builder-linode
+```
+
+[Go 1.12+](https://golang.org/doc/install) is required.
+
+To fetch the code and improve the plugin itself:
+
 ```sh
 git clone https://github.com/dradtke/packer-builder-linode
 cd packer-builder-linode
@@ -17,8 +27,7 @@ make install
 
 ## Configuration
 
-With the plugin installed, check out `test/fixtures/builder-linode/minimal.json` for an example Packer file that uses the
-Linode builder.
+With the builder plugin installed, an Packer file like the example at [`test/fixtures/builder-linode/minimal.json`](https://raw.githubusercontent.com/dradtke/packer-builder-linode/master/test/fixtures/builder-linode/minimal.json) can create a Linode Image.
 
 ```
 packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
