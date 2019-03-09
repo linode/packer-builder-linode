@@ -1,4 +1,4 @@
-# Linode builder plugin for Packer
+# Packer builder plugin for Linode Images
 
 [![GoDoc](https://godoc.org/github.com/linode/packer-builder-linode?status.svg)](https://godoc.org/github.com/dradtke/packer-builder-linode)
 [![Go Report Card](https://goreportcard.com/badge/github.com/linode/packer-builder-linode)](https://goreportcard.com/report/github.com/dradtke/packer-builder-linode)
@@ -9,13 +9,16 @@ This is a Packer plug-in for building Linode images.
 
 ## Build and Install
 
-Go makes building and installation easy:
+Requirements:
+
+* [Packer](https://www.packer.io/intro/getting-started/install.html)
+* [Go 1.12+](https://golang.org/doc/install)
+
+Go makes installing the Linode Images builder plugin for Packer easy:
 
 ```sh
 GOBIN=~/.packer.d/plugins go install github.com/linode/packer-builder-linode
 ```
-
-[Go 1.12+](https://golang.org/doc/install) is required.
 
 To fetch the code and improve the plugin itself:
 
