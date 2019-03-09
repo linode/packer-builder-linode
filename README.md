@@ -1,9 +1,9 @@
 # Linode builder plugin for Packer
 
-[![GoDoc](https://godoc.org/github.com/dradtke/packer-builder-linode?status.svg)](https://godoc.org/github.com/dradtke/packer-builder-linode)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dradtke/packer-builder-linode)](https://goreportcard.com/report/github.com/dradtke/packer-builder-linode)
-[![CircleCI](https://circleci.com/gh/dradtke/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/dradtke/packer-builder-linode)
-[![GitHub release](https://img.shields.io/github/release/dradtke/packer-builder-linode.svg)](https://github.com/dradtke/packer-builder-linode/releases/)
+[![GoDoc](https://godoc.org/github.com/linode/packer-builder-linode?status.svg)](https://godoc.org/github.com/dradtke/packer-builder-linode)
+[![Go Report Card](https://goreportcard.com/badge/github.com/linode/packer-builder-linode)](https://goreportcard.com/report/github.com/dradtke/packer-builder-linode)
+[![CircleCI](https://circleci.com/gh/linode/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/dradtke/packer-builder-linode)
+[![GitHub release](https://img.shields.io/github/release/linode/packer-builder-linode.svg)](https://github.com/dradtke/packer-builder-linode/releases/)
 
 This is a Packer plug-in for building Linode images.
 
@@ -12,7 +12,7 @@ This is a Packer plug-in for building Linode images.
 Go makes building and installation easy:
 
 ```sh
-GOBIN=~/.packer.d/plugins go install github.com/dradtke/packer-builder-linode
+GOBIN=~/.packer.d/plugins go install github.com/linode/packer-builder-linode
 ```
 
 [Go 1.12+](https://golang.org/doc/install) is required.
@@ -20,14 +20,14 @@ GOBIN=~/.packer.d/plugins go install github.com/dradtke/packer-builder-linode
 To fetch the code and improve the plugin itself:
 
 ```sh
-git clone https://github.com/dradtke/packer-builder-linode
+git clone https://github.com/linode/packer-builder-linode
 cd packer-builder-linode
 make install
 ```
 
 ## Configuration
 
-With the builder plugin installed, an Packer file like the example at [`test/fixtures/builder-linode/minimal.json`](https://raw.githubusercontent.com/dradtke/packer-builder-linode/master/test/fixtures/builder-linode/minimal.json) can create a Linode Image.
+With the builder plugin installed, an Packer file like the example at [`test/fixtures/builder-linode/minimal.json`](https://raw.githubusercontent.com/linode/packer-builder-linode/master/test/fixtures/builder-linode/minimal.json) can create a Linode Image.
 
 ```
 packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/minimal.json
@@ -68,7 +68,7 @@ To patch this plugin into Packer's source code, fetch this repository and Packer
 
 ```sh
 go get -d github.com/hashicorp/packer
-go get -d github.com/dradtke/packer-builder-linode
+go get -d github.com/linode/packer-builder-linode
 ```
 
 Then copy the contents of `linode/` and `test/` to Packer's source tree:
