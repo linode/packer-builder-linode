@@ -7,6 +7,10 @@
 
 This is a Packer plug-in for building Linode images.
 
+## Work in Progress
+
+This project is currently not supported. Use at your own risk. Contributions welcome!
+
 ## Build and Install
 
 Requirements:
@@ -115,6 +119,10 @@ bin/packer build -var "linode-token=$LINODE_TOKEN" test/fixtures/builder-linode/
 
 Then you can `go install` Packer, and it will have support for the "linode"
 plugin.
+
+## Contribution Guidelines
+
+Want to improve the Linode Packer Builder? Please start [here](.github/CONTRIBUTING.md).
 
 ## Discussion / Help
 
