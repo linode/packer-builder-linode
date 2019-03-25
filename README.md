@@ -1,9 +1,9 @@
 # Packer builder plugin for Linode Images
 
-[![GoDoc](https://godoc.org/github.com/linode/packer-builder-linode?status.svg)](https://godoc.org/github.com/dradtke/packer-builder-linode)
-[![Go Report Card](https://goreportcard.com/badge/github.com/linode/packer-builder-linode)](https://goreportcard.com/report/github.com/dradtke/packer-builder-linode)
-[![CircleCI](https://circleci.com/gh/linode/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/dradtke/packer-builder-linode)
-[![GitHub release](https://img.shields.io/github/release/linode/packer-builder-linode.svg)](https://github.com/dradtke/packer-builder-linode/releases/)
+[![GoDoc](https://godoc.org/github.com/linode/packer-builder-linode?status.svg)](https://godoc.org/github.com/linode/packer-builder-linode)
+[![Go Report Card](https://goreportcard.com/badge/github.com/linode/packer-builder-linode)](https://goreportcard.com/report/github.com/linode/packer-builder-linode)
+[![CircleCI](https://circleci.com/gh/linode/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/linode/packer-builder-linode)
+[![GitHub release](https://img.shields.io/github/release/linode/packer-builder-linode.svg)](https://github.com/linode/packer-builder-linode/releases/)
 
 This is a Packer plug-in for building Linode images.
 
