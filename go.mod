@@ -1,4 +1,4 @@
-module github.com/dradtke/packer-builder-linode
+module github.com/linode/packer-builder-linode
 
 require (
 	github.com/hashicorp/logutils v1.0.0 // indirect

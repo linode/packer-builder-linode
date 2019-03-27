@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dradtke/packer-builder-linode/linode"
+	"github.com/linode/packer-builder-linode/linode"
 	"github.com/hashicorp/packer/packer/plugin"
 )
 
