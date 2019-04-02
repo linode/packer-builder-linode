@@ -5,7 +5,7 @@
 [![CircleCI](https://circleci.com/gh/linode/packer-builder-linode.svg?style=svg)](https://circleci.com/gh/linode/packer-builder-linode)
 [![GitHub release](https://img.shields.io/github/release/linode/packer-builder-linode.svg)](https://github.com/linode/packer-builder-linode/releases/)
 
-This is a Packer plug-in for building Linode images.
+This is a Packer plug-in for building [Linode Images](https://www.linode.com/docs/platform/disk-images/linode-images/).
 
 ## Work in Progress
 
