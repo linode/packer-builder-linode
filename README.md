@@ -89,25 +89,25 @@ Then open up Packer's file `command/plugin.go` and add Linode as a new builder.
 
 ```patch
 diff --git a/command/plugin.go b/command/plugin.go
-index 2d2272640..2d126454c 100644
+index 62c909168..088c4af70 100644
 --- a/command/plugin.go
 +++ b/command/plugin.go
-@@ -28,6 +28,7 @@ import (
- 	hcloudbuilder "github.com/hashicorp/packer/builder/hcloud"
- 	hypervisobuilder "github.com/hashicorp/packer/builder/hyperv/iso"
- 	hypervvmcxbuilder "github.com/hashicorp/packer/builder/hyperv/vmcx"
-+	linodebuilder "github.com/hashicorp/packer/builder/linode"
- 	lxcbuilder "github.com/hashicorp/packer/builder/lxc"
- 	lxdbuilder "github.com/hashicorp/packer/builder/lxd"
- 	ncloudbuilder "github.com/hashicorp/packer/builder/ncloud"
-@@ -101,6 +102,7 @@ var Builders = map[string]packer.Builder{
- 	"hcloud":              new(hcloudbuilder.Builder),
- 	"hyperv-iso":          new(hypervisobuilder.Builder),
- 	"hyperv-vmcx":         new(hypervvmcxbuilder.Builder),
-+	"linode":              new(linodebuilder.Builder),
- 	"lxc":                 new(lxcbuilder.Builder),
- 	"lxd":                 new(lxdbuilder.Builder),
- 	"ncloud":              new(ncloudbuilder.Builder),
+@@ -29,6 +29,7 @@ import (
+        hyperonebuilder "github.com/hashicorp/packer/builder/hyperone"
+        hypervisobuilder "github.com/hashicorp/packer/builder/hyperv/iso"
+        hypervvmcxbuilder "github.com/hashicorp/packer/builder/hyperv/vmcx"
++       linodebuilder "github.com/hashicorp/packer/builder/linode"
+        lxcbuilder "github.com/hashicorp/packer/builder/lxc"
+        lxdbuilder "github.com/hashicorp/packer/builder/lxd"
+        ncloudbuilder "github.com/hashicorp/packer/builder/ncloud"
+@@ -109,6 +110,7 @@ var Builders = map[string]packer.Builder{
+        "hyperone":            new(hyperonebuilder.Builder),
+        "hyperv-iso":          new(hypervisobuilder.Builder),
+        "hyperv-vmcx":         new(hypervvmcxbuilder.Builder),
++       "linode":              new(linodebuilder.Builder),
+        "lxc":                 new(lxcbuilder.Builder),
+        "lxd":                 new(lxdbuilder.Builder),
+        "ncloud":              new(ncloudbuilder.Builder),
 ```
 
 To verify that the Linode patching applied:

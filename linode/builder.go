@@ -3,9 +3,9 @@
 package linode
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/packer/common"
 	"github.com/linode/linodego"
@@ -33,7 +33,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret packer.Artifact, err error) {
+func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (ret packer.Artifact, err error) {
 	ui.Say("Running builder ...")
 
 	client := newLinodeClient(b.config.PersonalAccessToken)
@@ -67,8 +67,8 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 		&stepCreateImage{client},
 	}
 
-	b.runner = common.NewRunnerWithPauseFn(steps, b.config.PackerConfig, ui, state)
-	b.runner.Run(state)
+	b.runner = common.NewRunner(steps, b.config.PackerConfig, ui)
+	b.runner.Run(ctx, state)
 
 	if rawErr, ok := state.GetOk("error"); ok {
 		return nil, rawErr.(error)
@@ -91,14 +91,8 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (ret p
 	artifact := Artifact{
 		ImageLabel: image.Label,
 		ImageID:    image.ID,
+		Driver:     &client,
 	}
 
 	return artifact, nil
-}
-
-func (b *Builder) Cancel() {
-	if b.runner != nil {
-		log.Println("Cancelling the step runner...")
-		b.runner.Cancel()
-	}
 }
