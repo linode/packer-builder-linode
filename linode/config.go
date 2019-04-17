@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/hashicorp/packer/common"
-	"github.com/hashicorp/packer/common/uuid"
 	"github.com/hashicorp/packer/helper/communicator"
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
@@ -68,6 +68,12 @@ func NewConfig(raws ...interface{}) (*Config, []string, error) {
 	var errs *packer.MultiError
 
 	// Defaults
+
+	if c.PersonalAccessToken == "" {
+		// Default to environment variable for linode_token, if it exists
+		c.PersonalAccessToken = os.Getenv("LINODE_TOKEN")
+	}
+
 	if c.ImageLabel == "" {
 		if def, err := interpolate.Render("packer-{{timestamp}}", nil); err == nil {
 			c.ImageLabel = def
@@ -78,7 +84,11 @@ func NewConfig(raws ...interface{}) (*Config, []string, error) {
 
 	if c.Label == "" {
 		// Default to packer-[time-ordered-uuid]
-		c.Label = fmt.Sprintf("packer-%s", uuid.TimeOrderedUUID())
+		if def, err := interpolate.Render("packer-{{timestamp}}", nil); err == nil {
+			c.Label = def
+		} else {
+			errs = packer.MultiErrorAppend(errs, fmt.Errorf("Unable to render Linode label: %s", err))
+		}
 	}
 
 	if c.RootPass == "" {
