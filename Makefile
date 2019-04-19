@@ -61,7 +61,7 @@ testacc: deps ## Run acceptance tests
 	PACKER_ACC=1 go test -v $(TEST) $(TESTARGS) -timeout=45m
 
 testrace: fmt-check mode-check vet ## Test with race detection enabled
-	@GO111MODULE=off go test -race $(TEST) $(TESTARGS) -timeout=3m -p=8
+	@GO111MODULE=on go test -race $(TEST) $(TESTARGS) -timeout=3m -p=8
 
 build:
 	go build -o $(PROG)$(BIN_SUFFIX)
