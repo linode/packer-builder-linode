@@ -1,3 +1,4 @@
+TEST?=$(shell go list ./...)
 PROG := packer-builder-linode
 INSTALL_DIR := $${HOME}/.packer.d/plugins
 
@@ -9,6 +10,10 @@ ifeq ($(GOOS),windows)
 	BIN_SUFFIX := ".exe"
 	INSTALL_DIR := $${APPDATA}/packer.d/plugins
 endif
+
+.PHONY: deps fmt fmt-check fmt-docs mode-check test testacc testrace build clean uninstall install
+
+ci: testrace
 
 deps:
 	@GO111MODUOE=off go get golang.org/x/tools/cmd/goimports
@@ -47,7 +52,6 @@ mode-check: ## Check that only certain files are executable
 fmt-docs:
 	@find ./website/source/docs -name "*.md" -exec pandoc --wrap auto --columns 79 --atx-headers -s -f "markdown_github+yaml_metadata_block" -t "markdown_github+yaml_metadata_block" {} -o {} \;
 
-.PHONY: test
 test: fmt-check mode-check vet ## Run unit tests
 	@go test $(TEST) $(TESTARGS) -timeout=3m
 
@@ -59,23 +63,18 @@ testacc: deps ## Run acceptance tests
 testrace: fmt-check mode-check vet ## Test with race detection enabled
 	@GO111MODULE=off go test -race $(TEST) $(TESTARGS) -timeout=3m -p=8
 
-.PHONY: build
 build:
 	go build -o $(PROG)$(BIN_SUFFIX)
 
-.PHONY: check
 check:
 	go fmt
 
-.PHONY: clean
 clean:
 	$(RM) $(OUT_DIR)/$(PROG)$(BIN_SUFFIX)
 
-.PHONY: uninstall
 uninstall:
 	$(RM) $(GOPATH)/bin/$(PROG)$(BIN_SUFFIX)
 
-.PHONY: install
 install: build
 	@mkdir -p $(INSTALL_DIR)
 	cp $(PROG)$(BIN_SUFFIX) $(INSTALL_DIR)

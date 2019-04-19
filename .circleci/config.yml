@@ -6,6 +6,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Test
+          command: make ci TESTARGS="-v"
+      - run:
           name: Build binary
           command: make
   release:

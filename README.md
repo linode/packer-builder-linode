@@ -56,6 +56,17 @@ HashiCorp provides excellent guidance on how to build, use, and debug plugins:
 
 * <https://www.packer.io/docs/extending/plugins.html>
 
+### Tests
+
+Tests can be run in the following ways:
+
+* `make test`
+  This will run all unittests except and will not fail if acceptance tests against the actual Linode API are skipped.
+* ` LINODE_TOKEN=... make testacc`
+  This will run all unittests and will fail if acceptance tests aginst the actual Linode API do not succeed.  A `LINODE_TOKEN` must be set in the environment.
+
+### Helpers
+
 Helper tools to interact with Linode objects and assist in development can be found in `cmd/`.
 These can be built with `go build` within their path.  They all expect a `LINODE_TOKEN` environment variable to be set.
 
